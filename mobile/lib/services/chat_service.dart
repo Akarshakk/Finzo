@@ -7,8 +7,8 @@ import 'api_service.dart';
 /// 1. Main backend /api/chat for CRUD operations (always works)
 /// 2. Optional RAG service on port 5002 for PDF knowledge context
 class SmartChatService {
-  // RAG service URL (optional - for PDF context)
-  static const String _ragBaseUrl = 'http://10.0.2.2:5002';
+  // RAG service URL (optional - for PDF context) - uses same IP as main backend
+  static const String _ragBaseUrl = 'http://192.168.1.246:5002';
   
   /// Check if RAG service is available
   static Future<bool> isRagAvailable() async {

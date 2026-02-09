@@ -244,7 +244,7 @@ class ApiService {
       
       // If baseUrl doesn't have port, constructing it manually
       if (!ragUrl.contains('5002')) {
-        ragUrl = 'http://192.168.1.5:5002/scan-bill'; // Fallback/Dev
+        ragUrl = 'http://192.168.1.246:5002/scan-bill'; // Fallback/Dev
       }
 
       var request = http.MultipartRequest('POST', Uri.parse(ragUrl));

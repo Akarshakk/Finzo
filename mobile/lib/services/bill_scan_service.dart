@@ -73,7 +73,7 @@ class BillScanService {
         // Assuming typical emulator/device setup if port replacement failed
          ragUrl = ApiConstants.baseUrl.contains('10.0.2.2') 
             ? 'http://10.0.2.2:5002/scan-bill' 
-            : 'http://192.168.1.5:5002/scan-bill';
+            : 'http://192.168.1.246:5002/scan-bill';
       }
 
       print('[BillScanService] URL: $ragUrl');
