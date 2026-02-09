@@ -60,8 +60,8 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
     // Use addPostFrameCallback to ensure widget is fully mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
-      // Start silent refresh timer (1 second)
-      _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      // Start silent refresh timer (10 seconds)
+      _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
         _loadData(silent: true);
       });
     });
@@ -218,23 +218,29 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
               child: const Icon(Icons.candlestick_chart, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.l10n.t('markets_lab'),
-                  style: FinzoTypography.titleLarge(color: textPrimary).copyWith(
-                    fontWeight: FontWeight.w700,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      context.l10n.t('markets_lab'),
+                      style: FinzoTypography.titleLarge(color: textPrimary).copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-                Text(
-                  context.l10n.t('paper_trading'),
-                  style: FinzoTypography.labelSmall().copyWith(
-                    color: marketAccent,
-                    fontWeight: FontWeight.w500,
+                  Text(
+                    context.l10n.t('paper_trading'),
+                    style: FinzoTypography.labelSmall().copyWith(
+                      color: marketAccent,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -407,6 +413,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const SizedBox(height: 8),
                             // Virtual Money Banner
                             _buildVirtualMoneyBanner(isDark, primaryColor),
                             
@@ -679,6 +686,7 @@ class _MarketsLabHomeScreenState extends State<MarketsLabHomeScreen> with Ticker
             height: 95,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
+              physics: const ClampingScrollPhysics(), // Better for horizontal lists
               itemCount: _marketOverview!.indices.length,
               itemBuilder: (context, index) {
                 final idx = _marketOverview!.indices[index];

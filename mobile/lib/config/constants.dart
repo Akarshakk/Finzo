@@ -33,13 +33,18 @@ class ApiConstants {
       return 'http://localhost:$_serverPort/api';
     }
 
-    // For mobile platforms - use the configured IP
-    // Note: Android emulator needs 10.0.2.2 to reach host machine
-    // For physical devices, set _serverIp to your computer's IP
+    // For mobile platforms
+    // If _serverIp is localhost, it works for:
+    // 1. iOS Simulator (direct)
+    // 2. Android Physical Device (via 'adb reverse tcp:5001 tcp:5001')
+    // 3. Android Emulator (needs 10.0.2.2)
+    
     if (_serverIp == 'localhost' || _serverIp == '127.0.0.1') {
-      // This handles Android emulator - it needs 10.0.2.2
-      // iOS simulator works with localhost
-      return 'http://10.0.2.2:$_serverPort/api';
+      // We can't easily detect if we're on an emulator vs physical device here 
+      // without additional packages, but 10.0.2.2 is usually ONLY for emulator.
+      // For physical devices with adb reverse, 'localhost' is better.
+      // Since this is for debugging, we'll assume physical device if not on web/simulator.
+      return 'http://localhost:$_serverPort/api';
     }
 
     // For real devices (physical Android/iOS) using computer's IP
@@ -88,5 +93,3 @@ class StorageKeys {
   static const String user = 'user_data';
   static const String isFirstTime = 'is_first_time';
 }
-
-

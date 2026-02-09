@@ -7,7 +7,7 @@ import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'add_group_expense_screen.dart';
 import 'group_chat_screen.dart';
-import 'package:razorpay_web/razorpay_web.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fl_chart/fl_chart.dart';

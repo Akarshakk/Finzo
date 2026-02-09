@@ -85,9 +85,8 @@
         let chartType = params.get('type') || 'candlestick'; // 'candlestick', 'area', 'volume'
         let API_BASE_URL = params.get('baseUrl') || 'http://localhost:5001/api/markets';
 
-        const getSymbols = () => symbolsText.length > 0 ? symbolsText.split(',') : [symbol];
-        let symbols = getSymbols();
-        const isComparison = () => symbolsText.length > 0;
+        const isComparison = symbolsText.length > 0;
+        const symbols = isComparison ? symbolsText.split(',') : [symbol];
 
         if (API_BASE_URL && !API_BASE_URL.startsWith('http')) {
             API_BASE_URL = 'http://' + API_BASE_URL;
@@ -109,12 +108,12 @@
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
             rightPriceScale: {
                 borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
-                visible: true,
+                visible: chartType !== 'volume',
                 autoScale: true,
             },
             timeScale: { borderColor: theme === 'dark' ? '#374151' : '#e5e7eb', timeVisible: true },
             localization: {
-                priceFormatter: (p) => isComparison() ? p.toFixed(2) + '%' : p.toFixed(2),
+                priceFormatter: (p) => isComparison ? p.toFixed(2) + '%' : p.toFixed(2),
             }
         });
 
@@ -124,7 +123,7 @@
         legend.style.top = '10px';
         legend.style.right = '10px';
         legend.style.zIndex = '10';
-        legend.style.display = 'none';
+        legend.style.display = isComparison ? 'flex' : 'none';
         legend.style.flexDirection = 'column';
         legend.style.gap = '4px';
         legend.style.background = 'rgba(0,0,0,0.5)';
@@ -137,67 +136,64 @@
         let mainSeries = null;
         let volumeSeries = null;
 
-        function setupSeries() {
-            // Clear existing
-            seriesMap.forEach(s => chart.removeSeries(s));
-            seriesMap.clear();
-            if (mainSeries) chart.removeSeries(mainSeries);
-            if (volumeSeries) chart.removeSeries(volumeSeries);
-            mainSeries = null;
-            volumeSeries = null;
-            legend.innerHTML = '';
-            legend.style.display = isComparison() ? 'flex' : 'none';
-
-            if (isComparison()) {
-                symbols.forEach((s, idx) => {
-                    const sObj = chart.addLineSeries({
-                        color: colors[idx % colors.length],
-                        lineWidth: 2,
-                        title: s,
-                    });
-                    seriesMap.set(s, sObj);
-
-                    const tag = document.createElement('div');
-                    tag.style.display = 'flex';
-                    tag.style.alignItems = 'center';
-                    tag.style.gap = '8px';
-                    tag.innerHTML = `<span style="width:10px; height:10px; background:${colors[idx % colors.length]}; border-radius:50%"></span><span style="color:white">${s}</span>`;
-                    legend.appendChild(tag);
-                });
-            } else if (chartType === 'area') {
-                mainSeries = chart.addAreaSeries({
-                    lineColor: '#26a69a',
-                    topColor: 'rgba(38, 166, 154, 0.4)',
-                    bottomColor: 'rgba(38, 166, 154, 0.0)',
+        if (isComparison) {
+            symbols.forEach((s, idx) => {
+                const sObj = chart.addLineSeries({
+                    color: colors[idx % colors.length],
                     lineWidth: 2,
+                    title: s,
                 });
-            } else if (chartType === 'volume') {
-                mainSeries = chart.addHistogramSeries({
-                    color: '#26a69a',
-                    priceFormat: { type: 'volume' },
-                });
-            } else {
-                mainSeries = chart.addCandlestickSeries({
-                    upColor: '#26a69a', downColor: '#ef5350', borderVisible: false,
-                    wickUpColor: '#26a69a', wickDownColor: '#ef5350',
-                });
-                volumeSeries = chart.addHistogramSeries({
-                    color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '',
-                });
-                volumeSeries.priceScale().applyOptions({
-                    scaleMargins: { top: 0.8, bottom: 0 },
-                });
-            }
+                seriesMap.set(s, sObj);
+
+                // Add tag to legend
+                const tag = document.createElement('div');
+                tag.style.display = 'flex';
+                tag.style.alignItems = 'center';
+                tag.style.gap = '8px';
+                tag.innerHTML = `<span style="width:10px; height:10px; background:${colors[idx % colors.length]}; border-radius:50%"></span><span style="color:white">${s}</span>`;
+                legend.appendChild(tag);
+            });
+        } else if (chartType === 'area') {
+            mainSeries = chart.addAreaSeries({
+                lineColor: '#26a69a',
+                topColor: 'rgba(38, 166, 154, 0.4)',
+                bottomColor: 'rgba(38, 166, 154, 0.0)',
+                lineWidth: 2,
+            });
+        } else if (chartType === 'volume') {
+            mainSeries = chart.addHistogramSeries({
+                color: '#26a69a',
+                priceFormat: { type: 'volume' },
+            });
+        } else {
+            // Default to Candlestick
+            mainSeries = chart.addCandlestickSeries({
+                upColor: '#26a69a',
+                downColor: '#ef5350',
+                borderVisible: false,
+                wickUpColor: '#26a69a',
+                wickDownColor: '#ef5350',
+            });
+            // Add volume overlay for candlestick mode
+            volumeSeries = chart.addHistogramSeries({
+                color: '#26a69a',
+                priceFormat: { type: 'volume' },
+                priceScaleId: '',
+            });
+            volumeSeries.priceScale().applyOptions({
+                scaleMargins: { top: 0.8, bottom: 0 },
+            });
         }
 
         window.onresize = () => chart.applyOptions({ width: window.innerWidth, height: window.innerHeight });
 
         let streams = [];
-        let initialPrices = new Map();
+        let initialPrices = new Map(); // symbol -> first close price for normalization
 
         function stopStream() {
             streams.forEach(s => s.close());
             streams = [];
+            setStatus('Stream Stopped');
         }
 
         function startStream() {
@@ -205,6 +201,7 @@
             symbols.forEach(s => {
                 const streamUrl = `${API_BASE_URL}/chart/stream?symbol=${encodeURIComponent(s)}&resolution=${interval}`;
                 const es = new EventSource(streamUrl);
+
                 es.onmessage = (event) => {
                     try {
                         const data = JSON.parse(event.data);
@@ -214,44 +211,69 @@
                             const initPrice = initialPrices.get(s);
 
                             if (series && initPrice) {
-                                series.update({ time: bar.time, value: ((bar.close - initPrice) / initPrice) * 100 });
-                            } else if (!isComparison()) {
-                                if (chartType === 'volume' && mainSeries) {
-                                    mainSeries.update({ time: bar.time, value: bar.volume, color: bar.close >= bar.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)' });
-                                } else if (chartType === 'area' && mainSeries) {
-                                    mainSeries.update({ time: bar.time, value: bar.close });
-                                } else if (mainSeries) {
+                                // Normalize for comparison mode
+                                const normalizedValue = ((bar.close - initPrice) / initPrice) * 100;
+                                series.update({
+                                    time: bar.time,
+                                    value: normalizedValue
+                                });
+                            } else if (!isComparison) {
+                                // Original single chart logic
+                                if (chartType === 'volume') {
+                                    mainSeries.update({
+                                        time: bar.time,
+                                        value: bar.volume,
+                                        color: bar.close >= bar.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)'
+                                    });
+                                } else if (chartType === 'area') {
+                                    mainSeries.update({
+                                        time: bar.time,
+                                        value: bar.close
+                                    });
+                                } else {
                                     mainSeries.update(bar);
-                                    if (volumeSeries) volumeSeries.update({ time: bar.time, value: bar.volume, color: bar.close >= bar.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)' });
+                                    if (volumeSeries) {
+                                        volumeSeries.update({
+                                            time: bar.time,
+                                            value: bar.volume,
+                                            color: bar.close >= bar.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)'
+                                        });
+                                    }
                                 }
+                                setStatus(`Live: ${bar.close.toFixed(2)}`);
                             }
                         }
-                    } catch (e) { console.error('SSE Error', e); }
+                    } catch (e) {
+                        console.error('SSE Error', e);
+                    }
                 };
                 streams.push(es);
             });
+            if (isComparison) setStatus(`Comparing ${symbols.length} stocks...`);
         }
 
         async function loadData() {
             document.getElementById('spinner').style.display = 'block';
             setError(null);
             initialPrices.clear();
-            setupSeries();
 
             try {
                 const now = Math.floor(Date.now() / 1000);
-                let secondsBack = 30 * 24 * 3600;
+                let secondsBack = 30 * 24 * 3600; // Default: 30 days
                 const intStr = String(interval).toUpperCase();
+
                 if (intStr === '1D' || intStr === 'D') secondsBack = 90 * 24 * 3600;
-                else if (intStr === '1W' || intStr === 'W' || intStr === '1M' || intStr === 'M') secondsBack = 365 * 24 * 3600;
+                else if (intStr === '1W' || intStr === 'W') secondsBack = 365 * 24 * 3600;
+                else if (intStr === '1M' || intStr === 'M') secondsBack = 365 * 24 * 3600;
                 else if (intStr === '3M') secondsBack = 365 * 2 * 24 * 3600;
                 else if (['1', '5', '15', '30', '60'].includes(intStr)) secondsBack = 7 * 24 * 3600;
+                else if (intStr.includes('M') || intStr.includes('Y')) secondsBack = 365 * 2 * 24 * 3600;
 
                 const from = now - secondsBack;
 
+                // Load each symbol
                 const loadPromises = symbols.map(async (s) => {
                     const url = `${API_BASE_URL}/chart/bars?symbol=${encodeURIComponent(s)}&resolution=${interval}&from=${from}&to=${now}`;
-                    setStatus(`Loading ${s}...`);
                     const res = await fetch(url);
                     if (!res.ok) throw new Error(`Fetch fail for ${s}`);
                     const json = await res.json();
@@ -261,42 +283,56 @@
                     const firstClose = bars[0].close;
                     initialPrices.set(s, firstClose);
 
-                    if (isComparison()) {
+                    if (isComparison) {
                         const series = seriesMap.get(s);
-                        if (series) series.setData(bars.map(b => ({ time: b.time, value: ((b.close - firstClose) / firstClose) * 100 })));
+                        if (series) {
+                            series.setData(bars.map(b => ({
+                                time: b.time,
+                                value: ((b.close - firstClose) / firstClose) * 100
+                            })));
+                        }
                     } else {
-                        if (chartType === 'volume' && mainSeries) {
-                            mainSeries.setData(bars.map(b => ({ time: b.time, value: b.volume, color: (b.close >= b.open) ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)' })));
-                        } else if (chartType === 'area' && mainSeries) {
-                            mainSeries.setData(bars.map(b => ({ time: b.time, value: b.close })));
-                        } else if (mainSeries) {
+                        // Single mode logic
+                        if (chartType === 'volume') {
+                            mainSeries.setData(bars.map(b => ({
+                                time: b.time,
+                                value: b.volume,
+                                color: (b.close >= b.open) ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)'
+                            })));
+                        } else if (chartType === 'area') {
+                            mainSeries.setData(bars.map(b => ({
+                                time: b.time,
+                                value: b.close
+                            })));
+                        } else {
                             mainSeries.setData(bars);
-                            if (volumeSeries) volumeSeries.setData(bars.map(b => ({ time: b.time, value: b.volume, color: (b.close >= b.open) ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)' })));
+                            if (volumeSeries) {
+                                volumeSeries.setData(bars.map(b => ({
+                                    time: b.time,
+                                    value: b.volume,
+                                    color: (b.close >= b.open) ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)'
+                                })));
+                            }
                         }
                     }
                 });
 
                 await Promise.all(loadPromises);
                 chart.timeScale().fitContent();
-                setStatus(isComparison() ? 'Comparison Ready' : `Ready: ${symbol}`);
+                setStatus(isComparison ? 'Comparison Ready' : `Ready: ${symbol}`);
                 startStream();
+
             } catch (e) {
-                setError(`Error: ${e.message}`);
+                setError(`Ready Error: ${e.message}`);
             }
             document.getElementById('spinner').style.display = 'none';
         }
 
-        window.updateConfig = (newSymbol, newInterval, newTheme, newBaseUrl, newSymbols, newType) => {
-            console.log('updateConfig:', { newSymbol, newInterval, newTheme, newBaseUrl, newSymbols, newType });
+        window.updateConfig = (newSymbol, newInterval, newTheme, newBaseUrl) => {
             stopStream();
             if (newSymbol) symbol = newSymbol;
             if (newInterval) interval = newInterval;
             if (newBaseUrl) API_BASE_URL = newBaseUrl;
-            if (newSymbols !== undefined) {
-                symbolsText = newSymbols;
-                symbols = getSymbols();
-            }
-            if (newType) chartType = newType;
             if (newTheme) {
                 theme = newTheme;
                 chart.applyOptions({
@@ -315,8 +351,8 @@
 
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'updateConfig') {
-                const { symbol, interval, theme, baseUrl, symbols, type } = event.data;
-                window.updateConfig(symbol, interval, theme, baseUrl, symbols, type);
+                const { symbol, interval, theme, baseUrl } = event.data;
+                window.updateConfig(symbol, interval, theme, baseUrl);
             }
         });
 

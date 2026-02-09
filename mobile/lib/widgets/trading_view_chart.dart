@@ -70,29 +70,58 @@ class _TradingViewChartState extends State<TradingViewChart> {
     _controller = WebViewController();
     _controller!.setJavaScriptMode(JavaScriptMode.unrestricted);
     _controller!.setBackgroundColor(const Color(0x00000000));
-    _controller!.setNavigationDelegate(
-      NavigationDelegate(
-        onPageFinished: (String url) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
-        },
-        onWebResourceError: (WebResourceError error) {
-          debugPrint('WebView error: ${error.description}');
-        },
-      ),
-    );
+    // NavigationDelegate will be set in _loadMobileChart
     _loadMobileChart();
+  }
+
+  void _onPageFinished(String url) {
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _injectConfig();
+    }
+  }
+
+  Future<void> _injectConfig() async {
+    if (_controller == null || kIsWeb) return;
+    
+    try {
+      final baseUrl = "${ApiConstants.baseUrl}/markets";
+      final symbolsText = widget.comparisonSymbols?.join(',') ?? '';
+      
+      final js = "if (window.updateConfig) { "
+          "window.updateConfig("
+          "'${widget.symbol}', "
+          "'${widget.interval}', "
+          "'${widget.theme}', "
+          "'$baseUrl', "
+          "'$symbolsText', "
+          "'${widget.type}'"
+          "); "
+          "}";
+      await _controller!.runJavaScript(js);
+    } catch (e) {
+      debugPrint('Error injecting chart config: $e');
+    }
   }
 
   Future<void> _loadMobileChart() async {
     try {
-      if (_controller != null) {
-        final baseUrl = Uri.encodeComponent("${ApiConstants.baseUrl}/markets");
-        final symbolsText = widget.comparisonSymbols?.join(',') ?? '';
-        final url = "assets/chart.html?symbol=${Uri.encodeComponent(widget.symbol)}&interval=${Uri.encodeComponent(widget.interval)}&theme=${widget.theme}&type=${widget.type}&baseUrl=$baseUrl&symbols=${Uri.encodeComponent(symbolsText)}";
-        await _controller!.loadFlutterAsset(url);
-      }
+      if (_controller == null || kIsWeb) return;
+
+      _controller!.setJavaScriptMode(JavaScriptMode.unrestricted);
+      _controller!.setBackgroundColor(const Color(0x00000000));
+      _controller!.setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: _onPageFinished,
+          onWebResourceError: (WebResourceError error) {
+            debugPrint('WebView error: ${error.description}');
+          },
+        ),
+      );
+
+      // IMPORTANT: loadFlutterAsset does NOT support query parameters.
+      // We load the plain asset and then inject config via JS.
+      await _controller!.loadFlutterAsset('assets/chart.html');
     } catch (e) {
       debugPrint('Error loading chart: $e');
     }
@@ -109,7 +138,7 @@ class _TradingViewChartState extends State<TradingViewChart> {
       if (kIsWeb) {
         _initWeb();
       } else {
-        _loadMobileChart();
+        _injectConfig();
       }
       setState(() {});
     }

@@ -36,8 +36,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     super.initState();
     _loadData();
     _checkWatchlist();
-    // Start silent refresh timer (1 second)
-    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    // Start silent refresh timer (10 seconds)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _loadData(silent: true);
     });
   }
@@ -180,17 +180,27 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           icon: Icon(Icons.arrow_back, color: primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(
-              widget.symbol,
-              style: AppTextStyles.heading3.copyWith(color: textPrimary),
-            ),
-            Text(
-              widget.name,
-              style: AppTextStyles.caption.copyWith(color: textSecondary),
-              overflow: TextOverflow.ellipsis,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      widget.symbol,
+                      style: AppTextStyles.heading3.copyWith(color: textPrimary),
+                    ),
+                  ),
+                  Text(
+                    widget.name,
+                    style: AppTextStyles.caption.copyWith(color: textSecondary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -330,19 +340,25 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                       size: 24,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      _stockDetail!.formattedChangePercent,
-                      style: TextStyle(
-                        color: _stockDetail!.isPositive ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _stockDetail!.formattedChangePercent,
+                        style: TextStyle(
+                          color: _stockDetail!.isPositive ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                    Text(
-                      _stockDetail!.formattedChange,
-                      style: TextStyle(
-                        color: _stockDetail!.isPositive ? Colors.green : Colors.red,
-                        fontSize: 12,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _stockDetail!.formattedChange,
+                        style: TextStyle(
+                          color: _stockDetail!.isPositive ? Colors.green : Colors.red,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
