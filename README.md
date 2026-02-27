@@ -18,7 +18,7 @@ Finzo is a full-stack mobile and web application that helps:
 - 🪪 Complete KYC verification
 - 🤖 Get AI financial advice (RAG-powered)
 
----
+--
 
 ## ✨ Key Features
 
