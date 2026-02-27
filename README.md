@@ -136,7 +136,7 @@ python rag_server.py
 | [WEB_DEBUGGING_FIXED.md](WEB_DEBUGGING_FIXED.md) | Web debugging solutions |
 | [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) | Project summary |
 
----
+--
 
 ## 🎓 Test Account
 
