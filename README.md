@@ -122,7 +122,7 @@ python rag_server.py
 | **Android** | ✅ Ready | All features including SMS |
 | **iOS** | ⏳ Planned | Coming soon |
 
---
+---
 
 ## 📚 Documentation
 
