@@ -2,12 +2,12 @@
 # Python dependencies for the RAG (Retrieval Augmented Generation) pipeline
 
 # Core framework
-flask==3.0.0
-flask-cors==4.0.0
-python-dotenv==1.0.0
+flask==3.0
+flask-cors==4.0
+python-dotenv==1.0
 
 # Pinecone vector database
-pinecone>=3.0.0
+pinecone>=3.0
 
 # LangChain for document processing
 langchain==0.1.0

@@ -13,8 +13,6 @@ const userFields = {
   profilePicture: { type: 'string', default: null },
   monthlyBudget: { type: 'number', default: 0 },
   savingsTarget: { type: 'number', default: 0, min: 0, max: 100 },
-  kycStatus: { type: 'string', enum: ['NOT_STARTED', 'PENDING', 'VERIFIED', 'FAILED'], default: 'NOT_STARTED' },
-  kycStep: { type: 'number', default: 0 },
   createdAt: { type: 'timestamp', default: () => new Date() }
 };
 
@@ -52,8 +50,6 @@ const createUser = async (userData) => {
     monthlyBudget: userData.monthlyBudget || 0,
     savingsTarget: userData.savingsTarget || 0,
     emailVerified: userData.emailVerified || false,
-    kycStatus: 'NOT_STARTED',
-    kycStep: 0,
     createdAt: new Date()
   };
 

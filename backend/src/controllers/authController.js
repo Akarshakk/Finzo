@@ -139,7 +139,6 @@ exports.verifyEmail = async (req, res) => {
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: true,
-          kycStatus: user.kycStatus,
           createdAt: user.createdAt
         },
         token
@@ -272,7 +271,6 @@ exports.login = async (req, res) => {
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: user.emailVerified,
-          kycStatus: user.kycStatus,
           createdAt: user.createdAt
         },
         token
@@ -306,7 +304,6 @@ exports.getMe = async (req, res) => {
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: user.emailVerified,
-          kycStatus: user.kycStatus,
           createdAt: user.createdAt
         }
       }
@@ -349,7 +346,6 @@ exports.updateProfile = async (req, res) => {
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: user.emailVerified,
-          kycStatus: user.kycStatus,
           createdAt: user.createdAt
         }
       }

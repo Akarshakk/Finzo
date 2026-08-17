@@ -10,7 +10,6 @@ import '../../providers/income_provider.dart';
 import '../../providers/analytics_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/login_screen.dart';
-import '../kyc/kyc_screen.dart';
 import '../sms_settings_screen.dart';
 import '../bank_statement_screen.dart';
 import 'add_income_screen.dart';
@@ -315,38 +314,6 @@ class _ProfileTabState extends State<ProfileTab> {
                         onTap: () => _showEditUpiDialog(context),
                         textColor: FinzoTheme.textPrimary(context),
                         subtitleColor: FinzoTheme.textSecondary(context),
-                      ),
-                      Divider(height: 1, color: FinzoTheme.divider(context)),
-                      _buildListTile(
-                        icon: Icons.verified_user_outlined,
-                        title: user?.kycStatus == 'VERIFIED'
-                            ? 'KYC Verified'
-                            : 'Complete KYC',
-                        subtitle: user?.kycStatus == 'VERIFIED'
-                            ? 'Your account is verified ✓'
-                            : 'Verify your identity',
-                        onTap: () {
-                          if (user?.kycStatus != 'VERIFIED') {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const KycScreen()),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('Your account is already verified! ✅'),
-                                backgroundColor: FinzoColors.success,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(FinzoRadius.md),
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        textColor: FinzoTheme.textPrimary(context),
-                        subtitleColor: user?.kycStatus == 'VERIFIED'
-                            ? FinzoColors.success
-                            : FinzoTheme.textSecondary(context),
                       ),
                       Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(

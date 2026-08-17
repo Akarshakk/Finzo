@@ -26,8 +26,28 @@ class ApiConstants {
   static const String _serverIp = '192.168.1.246'; // Your computer's IP for physical device
   static const String _serverPort = '5001'; // Backend runs on port 5001 (from .env)
 
+  // Production override. Pass at build/run time, e.g.:
+  //   flutter build apk --release --dart-define=API_BASE_URL=https://your-app.onrender.com/api
+  // When set, this takes priority over the local dev logic below on all platforms.
+  static const String _prodBaseUrl =
+      String.fromEnvironment('API_BASE_URL', defaultValue: '');
+
+  // Optional separate override for the Python RAG service (bill scan / chat context).
+  static const String _prodRagBaseUrl =
+      String.fromEnvironment('RAG_BASE_URL', defaultValue: '');
+
+  /// Base URL for the Python RAG service (port 5002 in local dev).
+  static String get ragBaseUrl {
+    if (_prodRagBaseUrl.isNotEmpty) return _prodRagBaseUrl;
+    // Local dev: derive from the API host by swapping the port.
+    return baseUrl.replaceAll(':$_serverPort/api', ':5002');
+  }
+
   // Automatically detect platform and use correct URL
   static String get baseUrl {
+    // Production build with an explicit backend URL wins everywhere.
+    if (_prodBaseUrl.isNotEmpty) return _prodBaseUrl;
+
     // For web browser - always use localhost
     if (kIsWeb) {
       return 'http://localhost:$_serverPort/api';

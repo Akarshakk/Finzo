@@ -68,6 +68,25 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.14.1
+
+# App icon generation.
+# 1. Put a square 1024x1024 PNG at: assets/icon/app_icon.png
+# 2. Run: dart run flutter_launcher_icons
+# This generates Android, iOS and web icons from that single image.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icons/finzo.png"
+  # Android 8+ adaptive icon (reuses the same image on a solid background)
+  adaptive_icon_background: "#1A1A2E"
+  adaptive_icon_foreground: "assets/icons/finzo.png"
+  web:
+    generate: true
+    image_path: "assets/icons/finzo.png"
+    background_color: "#1A1A2E"
+    theme_color: "#D4A574"
 
 flutter:
   uses-material-design: true

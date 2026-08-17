@@ -7,7 +7,6 @@ class User {
   final double monthlyBudget;
   final double savingsTarget;
   final DateTime createdAt;
-  final String kycStatus;
 
   User({
     required this.id,
@@ -18,7 +17,6 @@ class User {
     required this.monthlyBudget,
     this.savingsTarget = 0,
     required this.createdAt,
-    this.kycStatus = 'NOT_STARTED',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -43,7 +41,6 @@ class User {
       monthlyBudget: (json['monthlyBudget'] ?? 0).toDouble(),
       savingsTarget: (json['savingsTarget'] ?? 0).toDouble(),
       createdAt: parseCreatedAt(json['createdAt']),
-      kycStatus: json['kycStatus'] ?? 'NOT_STARTED',
     );
   }
 
@@ -57,7 +54,6 @@ class User {
       'monthlyBudget': monthlyBudget,
       'savingsTarget': savingsTarget,
       'createdAt': createdAt.toIso8601String(),
-      'kycStatus': kycStatus,
     };
   }
 
@@ -70,7 +66,6 @@ class User {
     double? monthlyBudget,
     double? savingsTarget,
     DateTime? createdAt,
-    String? kycStatus,
   }) {
     return User(
       id: id ?? this.id,
@@ -81,7 +76,6 @@ class User {
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
       savingsTarget: savingsTarget ?? this.savingsTarget,
       createdAt: createdAt ?? this.createdAt,
-      kycStatus: kycStatus ?? this.kycStatus,
     );
   }
 }

@@ -10,7 +10,6 @@ import '../../providers/debt_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/debt_reminder_service.dart';
 import '../../l10n/app_localizations.dart';
-import '../kyc/kyc_screen.dart';
 import 'dashboard_tab.dart';
 import 'expenses_tab.dart';
 import 'add_expense_screen.dart';
@@ -288,40 +287,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           },
           tooltip: 'Live Finance Tracking',
-        ),
-        Consumer<AuthProvider>(
-          builder: (context, auth, _) {
-            final isVerified = auth.user?.kycStatus == 'VERIFIED';
-            return _buildAppBarAction(
-              icon: isVerified ? Icons.verified_rounded : Icons.verified_outlined,
-              color: isVerified ? FinzoTheme.success(context) : FinzoTheme.warning(context),
-              onPressed: () {
-                if (!isVerified) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const KycScreen()),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Row(
-                        children: [
-                          Icon(Icons.verified_rounded, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text('Your account is verified!'),
-                        ],
-                      ),
-                      backgroundColor: FinzoTheme.success(context),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(FinzoRadius.md),
-                      ),
-                    ),
-                  );
-                }
-              },
-              tooltip: isVerified ? 'KYC Verified' : 'Complete KYC',
-            );
-          },
         ),
         _buildAppBarAction(
           icon: FinzoTheme.isDark(context) ? Icons.light_mode_rounded : Icons.dark_mode_rounded,

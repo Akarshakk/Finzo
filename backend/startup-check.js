@@ -50,8 +50,7 @@ if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
 // Check 4: Upload Directories
 console.log('\n4️⃣ Checking Upload Directories...');
 const uploadDirs = [
-    'uploads',
-    'uploads/kyc'
+    'uploads'
 ];
 
 uploadDirs.forEach(dir => {
@@ -115,7 +114,6 @@ if (hasErrors) {
     console.log('='.repeat(50));
     console.log('\n💡 Tips:');
     console.log('   - Start server: npm start or npm run dev');
-    console.log('   - Test KYC flow: node test-kyc-flow.js');
 
     console.log('\n🚀 Starting server...\n');
 }

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/biometric_service.dart';
-import '../kyc/kyc_screen.dart';
 import 'email_verification_screen.dart';
 import 'register_screen.dart';
 
@@ -183,13 +182,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   void _navigateAfterLogin(AuthProvider authProvider) {
-    if (authProvider.user?.kycStatus != 'VERIFIED') {
-      Navigator.of(context).pushReplacement(
-         MaterialPageRoute(builder: (_) => const KycScreen()),
-      );
-    } else {
-      Navigator.of(context).pushReplacementNamed('/home');
-    }
+    Navigator.of(context).pushReplacementNamed('/home');
   }
 
 

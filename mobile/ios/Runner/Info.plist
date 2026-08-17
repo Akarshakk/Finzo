@@ -49,5 +49,22 @@
 	<string>This app needs access to microphone for speech-to-text functionality.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app needs access to speech recognition for voice commands and chat input.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app uses the camera to scan bills and set your profile photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo access to upload bills and your profile photo.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>This app uses Face ID to securely sign you in.</string>
+	<!-- Allows detecting/opening installed UPI apps for settlements -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>upi</string>
+		<string>tez</string>
+		<string>gpay</string>
+		<string>phonepe</string>
+		<string>paytmmp</string>
+		<string>bhim</string>
+		<string>credpay</string>
+	</array>
 </dict>
 </plist>
