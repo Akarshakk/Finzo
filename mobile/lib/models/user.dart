@@ -3,6 +3,7 @@ class User {
   final String name;
   final String email;
   final String? profilePicture;
+  final String upiId;
   final double monthlyBudget;
   final double savingsTarget;
   final DateTime createdAt;
@@ -13,6 +14,7 @@ class User {
     required this.name,
     required this.email,
     this.profilePicture,
+    this.upiId = '',
     required this.monthlyBudget,
     this.savingsTarget = 0,
     required this.createdAt,
@@ -37,6 +39,7 @@ class User {
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       profilePicture: json['profilePicture'],
+      upiId: json['upiId'] ?? '',
       monthlyBudget: (json['monthlyBudget'] ?? 0).toDouble(),
       savingsTarget: (json['savingsTarget'] ?? 0).toDouble(),
       createdAt: parseCreatedAt(json['createdAt']),
@@ -50,6 +53,7 @@ class User {
       'name': name,
       'email': email,
       'profilePicture': profilePicture,
+      'upiId': upiId,
       'monthlyBudget': monthlyBudget,
       'savingsTarget': savingsTarget,
       'createdAt': createdAt.toIso8601String(),
@@ -62,6 +66,7 @@ class User {
     String? name,
     String? email,
     String? profilePicture,
+    String? upiId,
     double? monthlyBudget,
     double? savingsTarget,
     DateTime? createdAt,
@@ -72,6 +77,7 @@ class User {
       name: name ?? this.name,
       email: email ?? this.email,
       profilePicture: profilePicture ?? this.profilePicture,
+      upiId: upiId ?? this.upiId,
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
       savingsTarget: savingsTarget ?? this.savingsTarget,
       createdAt: createdAt ?? this.createdAt,
@@ -79,5 +85,3 @@ class User {
     );
   }
 }
-
-

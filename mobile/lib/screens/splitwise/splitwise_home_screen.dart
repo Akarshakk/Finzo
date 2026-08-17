@@ -20,7 +20,9 @@ class SplitwiseHomeScreen extends StatefulWidget {
 
 class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
-  
+  // Visited-tab history so the system back button returns to the previous tab.
+  final List<int> _tabHistory = [0];
+
   late AnimationController _fabController;
   late AnimationController _navController;
   late Animation<double> _fabScale;
@@ -75,12 +77,45 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
     super.dispose();
   }
 
+  void _onTabSelected(int index) {
+    if (index == _currentIndex) return;
+    setState(() {
+      _currentIndex = index;
+      _tabHistory.add(index);
+      if (_tabHistory.length > 12) _tabHistory.removeAt(0);
+    });
+  }
+
+  void _handleBack() {
+    if (_tabHistory.length > 1) {
+      setState(() {
+        _tabHistory.removeLast();
+        _currentIndex = _tabHistory.last;
+      });
+    } else if (_currentIndex != 0) {
+      setState(() {
+        _currentIndex = 0;
+        _tabHistory
+          ..clear()
+          ..add(0);
+      });
+    } else {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Use consistent brand accent color across the app
     final splitAccent = FinzoTheme.brandAccent(context);
     
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
       backgroundColor: FinzoTheme.background(context),
       extendBody: true,
       appBar: AppBar(
@@ -276,6 +311,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      ),
     );
   }
 
@@ -308,7 +344,7 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
-        setState(() => _currentIndex = index);
+        _onTabSelected(index);
       },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(

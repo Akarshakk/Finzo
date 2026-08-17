@@ -7,8 +7,8 @@ import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'add_group_expense_screen.dart';
 import 'group_chat_screen.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../services/api_service.dart';
+import '../../services/upi_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -23,131 +23,12 @@ class GroupDetailsScreen extends StatefulWidget {
 
 class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTickerProviderStateMixin {
   final bool _useSimplifiedDebt = true;
-  late Razorpay _razorpay;
-  String? _razorpayKey;
   int _selectedTabIndex = 0;
   int _bottomNavIndex = 0; // 0 = Expenses, 1 = Friends, 2 = Activity
   int _touchedIndex = -1;
   
   // Tab options
   final List<String> _tabs = ['Settle up', 'Balances', 'Expenses'];
-  
-  @override
-  void initState() {
-    super.initState();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-    _fetchRazorpayKey();
-  }
-
-  Future<void> _fetchRazorpayKey() async {
-    _razorpayKey = await ApiService.getRazorpayKey();
-  }
-
-  @override
-  void dispose() {
-    _razorpay.clear();
-    super.dispose();
-  }
-
-  // Pending settlement state
-  Map<String, dynamic>? _pendingSettlement;
-
-  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    try {
-      if (_pendingSettlement != null) {
-        final result = await ApiService.verifyPayment(
-          orderId: response.orderId!,
-          paymentId: response.paymentId!,
-          signature: response.signature!,
-          groupId: widget.groupId,
-          fromUserId: _pendingSettlement!['fromId'],
-          toUserId: _pendingSettlement!['toId'],
-          amount: _pendingSettlement!['amount'],
-        );
-
-        if (result['success']) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Payment Successful & Settled!'), backgroundColor: Colors.green),
-          );
-          Provider.of<SplitWiseProvider>(context, listen: false).fetchGroupById(widget.groupId);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Verification Failed: ${result['message']}'), backgroundColor: Colors.red),
-          );
-        }
-      }
-      _pendingSettlement = null;
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error verifying payment: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  void _handlePaymentError(PaymentFailureResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment Failed: ${response.message}'), backgroundColor: Colors.red),
-    );
-    _pendingSettlement = null;
-  }
-
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('External Wallet: ${response.walletName}')),
-    );
-    _pendingSettlement = null;
-  }
-
-  void _startPayment(Map<String, dynamic> settlement) async {
-    try {
-      _pendingSettlement = settlement;
-
-      _razorpayKey ??= await ApiService.getRazorpayKey();
-
-      if (_razorpayKey == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get payment configuration'), backgroundColor: Colors.red),
-        );
-        return;
-      }
-
-      final orderRes = await ApiService.createOrder(
-        amount: settlement['amount'],
-        currency: 'INR',
-        receipt: 'settle_${widget.groupId}_${DateTime.now().millisecondsSinceEpoch}',
-        notes: {
-          'groupId': widget.groupId,
-          'fromUserId': settlement['fromId'],
-          'toUserId': settlement['toId'],
-        },
-      );
-
-      if (orderRes['success']) {
-        final order = orderRes['data'];
-        var options = {
-          'key': _razorpayKey,
-          'amount': order['amount'],
-          'name': 'Finzo',
-          'description': 'Group Settlement',
-          'order_id': order['id'],
-          'prefill': {'contact': '9876543210', 'email': 'user@example.com'},
-          'external': {'wallets': ['paytm']},
-        };
-        _razorpay.open(options);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create order: ${orderRes['message']}'), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
 
   Future<void> _scanBill() async {
     try {
@@ -629,48 +510,66 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
   }
 
   Widget _buildSettlementCard(BuildContext context, Group group, Map<String, dynamic> settlement) {
+    final amount = (settlement['amount'] as num).toDouble();
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: FinzoTheme.surface(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: FinzoTheme.brandAccent(context).withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: FinzoTheme.brandAccent(context).withOpacity(0.25)),
+        boxShadow: FinzoShadows.small,
       ),
-      child: InkWell(
-        onTap: () => _showSettleDialog(context, group, settlement),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: FinzoTheme.brandAccent(context).withOpacity(0.1),
-                shape: BoxShape.circle,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: FinzoTheme.brandAccent(context).withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.swap_horiz, color: FinzoTheme.brandAccent(context)),
               ),
-              child: Icon(Icons.swap_horiz, color: FinzoTheme.brandAccent(context)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${settlement['from']} → ${settlement['to']}',
-                    style: FinzoTypography.titleSmall(color: FinzoTheme.textPrimary(context)),
-                  ),
-                  Text(
-                    'Tap to settle',
-                    style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${settlement['from']} → ${settlement['to']}',
+                      style: FinzoTypography.titleSmall(color: FinzoTheme.textPrimary(context)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${settlement['from']} owes ${settlement['to']}',
+                      style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
+                    ),
+                  ],
+                ),
               ),
+              Text(
+                '₹${amount.toStringAsFixed(0)}',
+                style: FinzoTypography.headlineMedium(color: FinzoTheme.brandAccent(context)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _showSettleDialog(context, group, settlement),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: FinzoTheme.brandAccent(context),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+              label: const Text('Settle up', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
-            Text(
-              '₹${settlement['amount'].toStringAsFixed(0)}',
-              style: FinzoTypography.headlineMedium(color: FinzoTheme.brandAccent(context)),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -748,33 +647,70 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
     }
 
     // Sort by date descending
-    final sortedExpenses = List.from(group.expenses)..sort((a, b) => b.date.compareTo(a.date));
-    
-    // Group by Month (Mocking a month header for now based on first items)
+    final sortedExpenses = List<GroupExpense>.from(group.expenses)
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    // Group expenses under a "Month Year" header.
+    final List<Widget> children = [];
+    String? lastMonthKey;
+    for (final expense in sortedExpenses) {
+      final monthKey = '${_getMonthName(expense.date.month)} ${expense.date.year}';
+      if (monthKey != lastMonthKey) {
+        children.add(Padding(
+          padding: EdgeInsets.only(top: lastMonthKey == null ? 0 : 12, bottom: 12),
+          child: Text(
+            monthKey,
+            style: FinzoTypography.titleSmall(color: FinzoTheme.textSecondary(context)),
+          ),
+        ));
+        lastMonthKey = monthKey;
+      }
+      children.add(_buildExpenseItem(context, expense));
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Text(
-            'February 2026', 
-            style: FinzoTypography.titleSmall(color: FinzoTheme.textPrimary(context)),
-          ),
-        ),
-        ...sortedExpenses.map((expense) => _buildExpenseItem(context, expense)),
-        const SizedBox(height: 80), // Padding for FAB
+        ...children,
+        const SizedBox(height: 90), // Padding for FAB
       ],
     );
   }
 
-  Widget _buildExpenseItem(BuildContext context, dynamic expense) {
-    final date = _formatDate(expense.date);
-    final day = date.split(' ')[0]; // Mock extraction of day
-    
+  Widget _buildExpenseItem(BuildContext context, GroupExpense expense) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final myId = authProvider.user?.id ?? '';
+
+    // Compute the current user's real position on this expense.
+    final myShare = expense.splits
+        .where((s) => s.memberId == myId)
+        .fold<double>(0, (sum, s) => sum + s.amount);
+    final bool iPaid = expense.paidBy == myId;
+    // If I paid, I lent the total minus my own share. Otherwise I owe my share.
+    final double net = iPaid ? (expense.amount - myShare) : -myShare;
+
+    final String tagLabel = net > 0.01
+        ? 'you lent'
+        : net < -0.01
+            ? 'you borrowed'
+            : 'not involved';
+    final Color tagColor = net > 0.01
+        ? FinzoTheme.success(context)
+        : net < -0.01
+            ? FinzoTheme.error(context)
+            : FinzoTheme.textTertiary(context);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: FinzoTheme.surface(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: FinzoTheme.divider(context)),
+        boxShadow: FinzoShadows.small,
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Date Column
           SizedBox(
@@ -782,30 +718,29 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
             child: Column(
               children: [
                 Text(
-                  'Feb', // Mock month
+                  _getMonthName(expense.date.month).substring(0, 3),
                   style: FinzoTypography.labelSmall(color: FinzoTheme.textSecondary(context)),
                 ),
                 Text(
-                  day, // Mock day
+                  '${expense.date.day}',
                   style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context)),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          
+
           // Icon
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: FinzoTheme.surfaceVariant(context),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: FinzoTheme.divider(context)),
+              color: FinzoTheme.brandAccent(context).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(_getCategoryIcon(expense.category), color: FinzoTheme.textPrimary(context)),
+            child: Icon(_getCategoryIcon(expense.category), color: FinzoTheme.brandAccent(context), size: 20),
           ),
           const SizedBox(width: 12),
-          
+
           // Details
           Expanded(
             child: Column(
@@ -813,29 +748,29 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
               children: [
                 Text(
                   expense.description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: FinzoTypography.titleMedium(color: FinzoTheme.textPrimary(context)),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  '${expense.paidByName} paid ₹${expense.amount.toStringAsFixed(2)}',
+                  '${iPaid ? "You" : expense.paidByName} paid ₹${expense.amount.toStringAsFixed(2)}',
                   style: FinzoTypography.bodySmall(color: FinzoTheme.textSecondary(context)),
                 ),
               ],
             ),
           ),
-          
+
           // Lending Info
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                'you lent',
-                style: FinzoTypography.labelSmall(color: FinzoTheme.success(context)),
-              ),
-              Text(
-                '₹${(expense.amount / expense.splits.length).toStringAsFixed(2)}', // Mock calculation
-                style: FinzoTypography.titleSmall(color: FinzoTheme.success(context)).copyWith(fontWeight: FontWeight.bold),
-              ),
+              Text(tagLabel, style: FinzoTypography.labelSmall(color: tagColor)),
+              if (net.abs() > 0.01)
+                Text(
+                  '₹${net.abs().toStringAsFixed(2)}',
+                  style: FinzoTypography.titleSmall(color: tagColor).copyWith(fontWeight: FontWeight.bold),
+                ),
             ],
           ),
         ],
@@ -1011,48 +946,189 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
   }
 
   void _showSettleDialog(BuildContext context, Group group, Map<String, dynamic> settlement) {
+    final double amount = (settlement['amount'] as num).toDouble();
+    final GroupMember payee = group.members.firstWhere(
+      (m) => m.userId == settlement['toId'],
+      orElse: () => group.members.first,
+    );
+    final upiController = TextEditingController(text: payee.upiId);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: FinzoTheme.surface(context),
-        title: Text('Settle Payment', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
-        content: Text(
-          '${settlement['from']} pays ₹${settlement['amount'].toStringAsFixed(0)} to ${settlement['to']}',
-          style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Settle up', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Amount summary
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: FinzoTheme.brandAccent(context).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: FinzoTheme.brandAccent(context).withOpacity(0.25)),
+              ),
+              child: Column(
+                children: [
+                  Text('You pay', style: FinzoTypography.labelMedium(color: FinzoTheme.textSecondary(context))),
+                  const SizedBox(height: 4),
+                  Text('₹${amount.toStringAsFixed(2)}',
+                      style: FinzoTypography.displaySmall(color: FinzoTheme.brandAccent(context))
+                          .copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text('to ${settlement['to']}',
+                      style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context))),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text("${settlement['to']}'s UPI ID",
+                style: FinzoTypography.labelMedium(color: FinzoTheme.textSecondary(context))),
+            const SizedBox(height: 6),
+            TextField(
+              controller: upiController,
+              autocorrect: false,
+              style: FinzoTypography.bodyMedium(color: FinzoTheme.textPrimary(context)),
+              decoration: InputDecoration(
+                hintText: 'name@bank',
+                prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap "Pay now" to choose a UPI app (GPay, PhonePe, Paytm...). '
+              'After paying, confirm to mark this settled.',
+              style: FinzoTypography.bodySmall(color: FinzoTheme.textTertiary(context)),
+            ),
+          ],
         ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text('Cancel', style: TextStyle(color: FinzoTheme.textSecondary(context))),
           ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _markSettled(group, settlement);
+                },
+                child: const Text('Mark settled', style: TextStyle(color: Colors.green)),
+              ),
+              const SizedBox(width: 4),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final upiId = upiController.text.trim();
+                  if (!UpiService.isValidUpiId(upiId)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Enter a valid UPI ID (e.g. name@bank)'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pop(ctx);
+                  await _payViaUpi(group, settlement, upiId, payee.name);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: FinzoTheme.brandAccent(context),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.qr_code_2, color: Colors.white, size: 18),
+                label: const Text('Pay now', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Directly marks a settlement as paid (e.g. cash / already paid).
+  Future<void> _markSettled(Group group, Map<String, dynamic> settlement) async {
+    final provider = Provider.of<SplitWiseProvider>(context, listen: false);
+    final success = await provider.settleUp(
+      groupId: group.id,
+      fromUserId: settlement['fromId'],
+      toUserId: settlement['toId'],
+      amount: (settlement['amount'] as num).toDouble(),
+    );
+    if (!mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Settled!'), backgroundColor: Colors.green),
+      );
+      await provider.fetchGroupById(group.id);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.errorMessage ?? 'Could not settle'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  /// Opens a UPI app for payment, then asks the user to confirm settlement.
+  Future<void> _payViaUpi(
+    Group group,
+    Map<String, dynamic> settlement,
+    String upiId,
+    String payeeName,
+  ) async {
+    final amount = (settlement['amount'] as num).toDouble();
+    final launched = await UpiService.payViaUpi(
+      payeeUpiId: upiId,
+      payeeName: payeeName,
+      amount: amount,
+      note: 'Finzo · ${group.name}',
+    );
+
+    if (!mounted) return;
+
+    if (!launched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No UPI app found. Install GPay/PhonePe/Paytm or use "Mark settled".'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // After returning from the UPI app, confirm whether the payment went through.
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Payment complete?', style: FinzoTypography.titleLarge(color: FinzoTheme.textPrimary(context))),
+        content: Text(
+          'Did you successfully pay ₹${amount.toStringAsFixed(2)} to $payeeName?',
+          style: FinzoTypography.bodyMedium(color: FinzoTheme.textSecondary(context)),
+        ),
+        actions: [
           TextButton(
-            onPressed: () async {
-              final provider = Provider.of<SplitWiseProvider>(context, listen: false);
-              final success = await provider.settleUp(
-                groupId: group.id,
-                fromUserId: settlement['fromId'],
-                toUserId: settlement['toId'],
-                amount: settlement['amount'],
-              );
-              if (ctx.mounted) {
-                Navigator.pop(ctx);
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Settled!'), backgroundColor: Colors.green),
-                  );
-                  await provider.fetchGroupById(group.id);
-                }
-              }
-            },
-            child: const Text('Mark Settled', style: TextStyle(color: Colors.green)),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Not yet', style: TextStyle(color: FinzoTheme.textSecondary(context))),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              _startPayment(settlement);
+              await _markSettled(group, settlement);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: FinzoTheme.brandAccent(context)),
-            child: const Text('Pay Now', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Yes, mark settled', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1180,11 +1256,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
     }
 
     return settlements;
-  }
-
-  String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[date.month - 1]} ${date.day}';
   }
 
   IconData _getCategoryIcon(String category) {

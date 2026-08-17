@@ -23,9 +23,7 @@ if (missingEnvVars.length > 0) {
     console.log('   ✅ All required environment variables present');
     console.log(`   - PORT: ${process.env.PORT}`);
     console.log(`   - JWT_SECRET: ${process.env.JWT_SECRET.substring(0, 10)}...`);
-    if (!process.env.RAZORPAY_KEY_ID) {
-        console.warn('   ⚠️  RAZORPAY_KEY_ID missing - Payment features will be disabled');
-    }
+
 }
 
 // Check 2: Firebase Configuration (Optional for local development)

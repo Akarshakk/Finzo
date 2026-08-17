@@ -9,7 +9,7 @@ const pendingRegistrations = new Map();
 // @access  Public
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, monthlyBudget } = req.body;
+    const { name, email, password, monthlyBudget, upiId } = req.body;
 
     // Check if user already exists in database
     const existingUser = await User.findByEmail(email);
@@ -42,6 +42,7 @@ exports.register = async (req, res) => {
       email: email.toLowerCase(),
       password, // Will be hashed when actually creating user
       monthlyBudget: monthlyBudget || 0,
+      upiId: upiId || '',
       createdAt: Date.now(),
       expiresAt: Date.now() + 30 * 60 * 1000 // 30 minutes
     });
@@ -115,6 +116,7 @@ exports.verifyEmail = async (req, res) => {
       email: pending.email,
       password: pending.password,
       monthlyBudget: pending.monthlyBudget,
+      upiId: pending.upiId,
       emailVerified: true // Already verified
     });
 
@@ -133,6 +135,7 @@ exports.verifyEmail = async (req, res) => {
           name: user.name,
           email: user.email,
           profilePicture: user.profilePicture,
+          upiId: user.upiId || '',
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: true,
@@ -265,6 +268,7 @@ exports.login = async (req, res) => {
           name: user.name,
           email: user.email,
           profilePicture: user.profilePicture,
+          upiId: user.upiId || '',
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: user.emailVerified,
@@ -298,6 +302,7 @@ exports.getMe = async (req, res) => {
           name: user.name,
           email: user.email,
           profilePicture: user.profilePicture,
+          upiId: user.upiId || '',
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: user.emailVerified,
@@ -320,13 +325,14 @@ exports.getMe = async (req, res) => {
 // @access  Private
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, monthlyBudget, savingsTarget, profilePicture } = req.body;
+    const { name, monthlyBudget, savingsTarget, profilePicture, upiId } = req.body;
 
     const updateData = {};
     if (name) updateData.name = name;
     if (monthlyBudget !== undefined) updateData.monthlyBudget = monthlyBudget;
     if (savingsTarget !== undefined) updateData.savingsTarget = savingsTarget;
     if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (upiId !== undefined) updateData.upiId = (upiId || '').trim();
 
     const user = await User.updateUser(req.user.id, updateData);
 
@@ -339,6 +345,7 @@ exports.updateProfile = async (req, res) => {
           name: user.name,
           email: user.email,
           profilePicture: user.profilePicture,
+          upiId: user.upiId || '',
           monthlyBudget: user.monthlyBudget,
           savingsTarget: user.savingsTarget,
           emailVerified: user.emailVerified,

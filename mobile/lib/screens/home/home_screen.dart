@@ -27,6 +27,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  // Tracks the order of visited tabs so the system back button returns to the
+  // previously viewed tab (e.g. Dashboard -> Profile -> back = Dashboard).
+  final List<int> _tabHistory = [0];
   late AnimationController _fabController;
   late AnimationController _navController;
   late Animation<double> _fabScale;
@@ -73,6 +76,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  /// Switches tabs while recording history for back navigation.
+  void _onTabSelected(int index) {
+    if (index == _currentIndex) return;
+    setState(() {
+      _currentIndex = index;
+      _tabHistory.add(index);
+      // Keep the history bounded to avoid unbounded growth.
+      if (_tabHistory.length > 12) _tabHistory.removeAt(0);
+    });
+  }
+
+  /// Handles the system back button: step back through visited tabs first,
+  /// then fall back to the dashboard, then to the feature menu.
+  void _handleBack() {
+    if (_tabHistory.length > 1) {
+      setState(() {
+        _tabHistory.removeLast();
+        _currentIndex = _tabHistory.last;
+      });
+    } else if (_currentIndex != 0) {
+      setState(() {
+        _currentIndex = 0;
+        _tabHistory
+          ..clear()
+          ..add(0);
+      });
+    } else {
+      // Already on the dashboard root -> go back to the feature menu.
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
+
   Future<void> _loadData() async {
     final expenseProvider =
         Provider.of<ExpenseProvider>(context, listen: false);
@@ -114,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final tabs = [
       DashboardTab(
-        onNavigateToProfile: () => setState(() => _currentIndex = 3),
+        onNavigateToProfile: () => _onTabSelected(3),
       ),
       const ExpensesTab(),
       SmartChatWidget(
@@ -128,7 +163,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       const ProfileTab(),
     ];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
       backgroundColor: FinzoTheme.background(context),
       extendBody: true,
       appBar: _buildPremiumAppBar(context),
@@ -166,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 );
               },
             ),
+      ),
     );
   }
 
@@ -404,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
-        setState(() => _currentIndex = index);
+        _onTabSelected(index);
       },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(

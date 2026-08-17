@@ -1,6 +1,6 @@
 const Group = require('../models/Group');
 const User = require('../models/User');
-const Income = require('../models/Income');
+const Expense = require('../models/Expense');
 const GroupChat = require('../models/GroupChat');
 
 // @desc    Create a new group
@@ -20,6 +20,7 @@ exports.createGroup = async (req, res) => {
                 userId,
                 name: req.user.name,
                 email: req.user.email,
+                upiId: req.user.upiId || '',
                 amountOwed: 0,
                 amountLent: 0
             }],
@@ -126,7 +127,8 @@ exports.joinGroup = async (req, res) => {
         const updatedGroup = await Group.addMember(group.id, {
             userId,
             name: req.user.name,
-            email: req.user.email
+            email: req.user.email,
+            upiId: req.user.upiId || ''
         });
 
         res.json({
@@ -191,7 +193,8 @@ exports.addMember = async (req, res) => {
         const updatedGroup = await Group.addMember(req.params.id, {
             userId: user.id,
             name: user.name,
-            email: user.email
+            email: user.email,
+            upiId: user.upiId || ''
         });
 
         res.json({
@@ -381,26 +384,16 @@ exports.settleUp = async (req, res) => {
             });
         }
 
-        // Update balances
-        group.members[fromIndex].amountOwed = Math.max(0, group.members[fromIndex].amountOwed - amount);
-        group.members[toIndex].amountLent = Math.max(0, group.members[toIndex].amountLent - amount);
+        // Update balances.
+        // A settlement is a cash transfer that reconciles who fronted money for shared
+        // expenses. It is NOT new income/expense for either party (each member's fair
+        // share was already recorded as a personal expense when the group expense was
+        // added), so we only adjust the group balances here to avoid double counting.
+        const settleAmount = Number(amount) || 0;
+        group.members[fromIndex].amountOwed = Math.max(0, group.members[fromIndex].amountOwed - settleAmount);
+        group.members[toIndex].amountLent = Math.max(0, group.members[toIndex].amountLent - settleAmount);
 
         const updatedGroup = await Group.updateById(req.params.id, { members: group.members });
-
-        // Create income record for the recipient (toUserId) - they received money
-        const fromMember = group.members[fromIndex];
-        const toMember = group.members[toIndex];
-        const now = new Date();
-
-        await Income.create({
-            user: toUserId,
-            amount: amount,
-            description: `Settlement received from ${fromMember.name} in ${group.name}`,
-            source: 'group_settlement',
-            month: now.getMonth() + 1,
-            year: now.getFullYear(),
-            date: now
-        });
 
         res.json({
             success: true,
@@ -448,6 +441,35 @@ exports.addExpense = async (req, res) => {
             category,
             date
         });
+
+        // Link the group expense to each member's PERSONAL finance so that group
+        // finance and personal finance stay connected. Every member's fair share is
+        // recorded as a personal expense (tagged with the group + group-expense id so
+        // it can be reversed on delete). This is the single source of truth for the
+        // group -> personal linkage (the app no longer creates it client-side).
+        const createdExpense = updatedGroup.expenses[updatedGroup.expenses.length - 1];
+        const groupExpenseId = createdExpense ? createdExpense.id : null;
+
+        if (groupExpenseId && Array.isArray(splits)) {
+            const label = (description && description.trim().length > 0)
+                ? `${description.trim()} (${updatedGroup.name})`
+                : `Group expense - ${updatedGroup.name}`;
+
+            await Promise.all(
+                splits
+                    .filter((s) => s && s.memberId && Number(s.amount) > 0)
+                    .map((s) => Expense.create({
+                        user: s.memberId,
+                        amount: Number(s.amount),
+                        category: category || 'others',
+                        description: label,
+                        date,
+                        groupId: req.params.id,
+                        groupExpenseId,
+                        source: 'group'
+                    }))
+            );
+        }
 
         res.json({
             success: true,
@@ -518,6 +540,19 @@ exports.deleteGroupExpense = async (req, res) => {
             expenses: group.expenses,
             members: group.members
         });
+
+        // Remove the linked personal expenses that were created for each member's
+        // share so personal finance stays in sync with the group.
+        const memberIds = new Set([
+            ...(expense.splits || []).map((s) => s.memberId),
+            expense.paidBy
+        ].filter(Boolean));
+
+        await Promise.all(
+            [...memberIds].map((memberId) =>
+                Expense.deleteByGroupLink(memberId, req.params.id, expenseId).catch(() => 0)
+            )
+        );
 
         res.json({
             success: true,

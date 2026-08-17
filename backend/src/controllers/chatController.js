@@ -67,7 +67,7 @@ const functionDeclarations = [
             properties: {
                 month: { type: 'number', description: 'Month (1-12)' },
                 year: { type: 'number', description: 'Year' },
-                category: { type: 'string', description: 'Category: Food, Transport, Shopping, Bills, Entertainment, Health, Education, Other' },
+                category: { type: 'string', description: 'Category: clothes, drinks, education, food, fuel, fun, health, hotel, personal, pets, restaurants, tips, transport, others' },
                 limit: { type: 'number', description: 'Number of recent expenses to get' }
             }
         }
@@ -109,7 +109,7 @@ const functionDeclarations = [
     // ============ READ Operations - Markets ============
     {
         name: 'getPortfolio',
-        description: 'Get user paper trading portfolio with current value and P&L',
+        description: 'Get user paper trading portfolio with holdings, share prices, current value, P&L (profit and loss), and market labs data. Use this for queries about: portfolio, holdings, shares, stocks owned, stock prices, P&L, profit, loss, market labs, investments',
         parameters: { type: 'object', properties: {} }
     },
     {
@@ -119,7 +119,7 @@ const functionDeclarations = [
     },
     {
         name: 'getTradeHistory',
-        description: 'Get user trade history',
+        description: 'Get user trade history - stocks bought or sold, recent transactions, trading activity. Use this for queries about: stocks bought today, stocks sold, trade history, recent trades, what did I buy, what did I sell',
         parameters: {
             type: 'object',
             properties: {
@@ -136,7 +136,7 @@ const functionDeclarations = [
             type: 'object',
             properties: {
                 amount: { type: 'number', description: 'Amount in rupees' },
-                category: { type: 'string', description: 'Category: Food, Transport, Shopping, Bills, Entertainment, Health, Education, Other' },
+                category: { type: 'string', description: 'Category: clothes, drinks, education, food, fuel, fun, health, hotel, personal, pets, restaurants, tips, transport, others' },
                 description: { type: 'string', description: 'Description of expense' },
                 date: { type: 'string', description: 'Date - can be "today", "yesterday", "last week", or YYYY-MM-DD format' }
             },
@@ -1266,8 +1266,9 @@ exports.chat = async (req, res) => {
         // List of models to try in order of preference
         // Using models available in the Gemini API console
         const modelsToTry = [
-            'gemini-2.5-flash',
-            'gemini-2.5-flash-lite'
+            'gemini-3.0-flash',       // Requested by user
+            'gemini-2.5-flash-lite',  // Requested by user
+            'gemini-1.5-flash'        // Fallback
         ];
         let lastError = null;
 
@@ -1334,21 +1335,12 @@ exports.chat = async (req, res) => {
                 } catch (error) {
                     lastError = error;
 
-                    // If Rate Limited (429), wait and retry
+                    // If Rate Limited (429), retry with minimal delay
                     if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
-                        console.warn(`[Chat] Rate limited on ${modelName}. Waiting...`);
+                        console.warn(`[Chat] Rate limited on ${modelName}. Retrying quickly...`);
 
-                        // Extract wait time if possible
-                        let waitTime = 5000 * (retryCount + 1); // Default backoff
-
-                        try {
-                            // Try to find "Please retry in X s"
-                            const match = error.message?.match(/retry in\s+([\d.]+)\s*s/);
-                            if (match && match[1]) {
-                                waitTime = Math.ceil(parseFloat(match[1]) * 1000) + 1000; // Parse + buffer
-                                console.log(`[Chat] Detected retry delay: ${waitTime}ms`);
-                            }
-                        } catch (e) { }
+                        // Minimal wait time (1s) as requested to reduce buffer
+                        let waitTime = 1000;
 
                         retryCount++;
                         if (retryCount <= maxRetries) {

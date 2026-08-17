@@ -4,7 +4,6 @@ import '../../config/app_theme.dart';
 import '../../models/group.dart' show GroupExpenseSplit;
 import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/expense_provider.dart';
 
 class AddGroupExpenseScreen extends StatefulWidget {
   final String groupId;
@@ -93,7 +92,6 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
 
   Future<void> _saveExpense() async {
     final provider = Provider.of<SplitWiseProvider>(context, listen: false);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final group = provider.groups.firstWhere((g) => g.id == widget.groupId);
     
     final amount = double.tryParse(amountController.text) ?? 0;
@@ -140,41 +138,9 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
       date: selectedDate,
     );
 
-    // Link to personal expenses
-    String? groupExpenseId;
-    if (success && provider.currentGroup != null) {
-      final updatedGroup = provider.currentGroup!;
-      if (updatedGroup.expenses.isNotEmpty) {
-        groupExpenseId = updatedGroup.expenses.last.id;
-      }
-    }
-
-    if (success && groupExpenseId != null) {
-      final authUserId = authProvider.user?.id;
-      if (authUserId != null) {
-        final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
-        final userSplit = splits.firstWhere(
-          (s) => s.memberId == authUserId,
-          orElse: () => GroupExpenseSplit(memberId: authUserId, memberName: '', amount: 0),
-        );
-        
-        if (userSplit.amount > 0) {
-          // Always use 'others' category for group expenses to keep them separate from personal expenses
-          const String personalCategory = 'others';
-          
-          await expenseProvider.addExpense(
-            amount: userSplit.amount,
-            category: personalCategory,
-            description: descriptionController.text.isNotEmpty 
-                ? '${descriptionController.text} (${group.name})' 
-                : 'Group Expense - ${group.name}',
-            date: selectedDate,
-            groupExpenseId: groupExpenseId,
-            groupId: widget.groupId,
-          );
-        }
-      }
-    }
+    // NOTE: The backend now records each member's share as a personal expense
+    // (linked via groupId + groupExpenseId). We intentionally do NOT create a
+    // personal expense here anymore to avoid double counting.
 
     if (success && mounted) {
       Navigator.pop(context);

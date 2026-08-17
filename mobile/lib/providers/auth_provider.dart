@@ -183,13 +183,14 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Update profile
-  Future<bool> updateProfile({String? name, double? monthlyBudget, double? savingsTarget, String? profilePicture}) async {
+  Future<bool> updateProfile({String? name, double? monthlyBudget, double? savingsTarget, String? profilePicture, String? upiId}) async {
     try {
       Map<String, dynamic> body = {};
       if (name != null) body['name'] = name;
       if (monthlyBudget != null) body['monthlyBudget'] = monthlyBudget;
       if (savingsTarget != null) body['savingsTarget'] = savingsTarget;
       if (profilePicture != null) body['profilePicture'] = profilePicture;
+      if (upiId != null) body['upiId'] = upiId;
 
       final response = await ApiService.put(
         ApiConstants.updateProfile,

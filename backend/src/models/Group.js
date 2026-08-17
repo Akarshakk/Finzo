@@ -102,6 +102,7 @@ const addMember = async (groupId, member) => {
         userId: member.userId,
         name: member.name,
         email: member.email,
+        upiId: member.upiId || '',
         amountOwed: 0,
         amountLent: 0
     };

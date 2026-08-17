@@ -183,56 +183,6 @@ class ApiService {
       return {'success': false, 'message': 'Upload error: ${e.toString()}'};
     }
   }
-  // Create Razorpay Order
-  static Future<Map<String, dynamic>> createOrder({
-    required double amount,
-    required String currency,
-    required String receipt,
-    Map<String, dynamic>? notes,
-  }) async {
-    return await post(
-      '/payment/create-order',
-      body: {
-        'amount': amount,
-        'currency': currency,
-        'receipt': receipt,
-        'notes': notes,
-      },
-    );
-  }
-
-  // Verify Razorpay Payment
-  static Future<Map<String, dynamic>> verifyPayment({
-    required String orderId,
-    required String paymentId,
-    required String signature,
-    required String groupId,
-    required String fromUserId,
-    required String toUserId,
-    required double amount,
-  }) async {
-    return await post(
-      '/payment/verify',
-      body: {
-        'razorpay_order_id': orderId,
-        'razorpay_payment_id': paymentId,
-        'razorpay_signature': signature,
-        'groupId': groupId,
-        'fromUserId': fromUserId,
-        'toUserId': toUserId,
-        'amount': amount,
-      },
-    );
-  }
-
-  // Get Razorpay Key
-  static Future<String?> getRazorpayKey() async {
-    final response = await get('/payment/key');
-    if (response['success']) {
-      return response['key'];
-    }
-    return null;
-  }
   // Scan bill (OCR)
   static Future<Map<String, dynamic>?> scanBill(dynamic imageFile) async {
     try {

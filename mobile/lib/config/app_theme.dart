@@ -558,7 +558,7 @@ class FinzoAppTheme {
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(FinzoRadius.md),
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
           ),
           elevation: 0,
           textStyle: TextStyle(
@@ -568,7 +568,23 @@ class FinzoAppTheme {
           ),
         ),
       ),
-      
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: FinzoColors.brandAccent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+          ),
+          textStyle: TextStyle(
+            fontFamily: FinzoTypography.fontFamily,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: FinzoColors.textPrimary,
@@ -700,7 +716,7 @@ class FinzoAppTheme {
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(FinzoRadius.md),
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
           ),
           elevation: 0,
           textStyle: TextStyle(
@@ -710,7 +726,23 @@ class FinzoAppTheme {
           ),
         ),
       ),
-      
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: FinzoColorsDark.brandAccent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(FinzoRadius.lg),
+          ),
+          textStyle: TextStyle(
+            fontFamily: FinzoTypography.fontFamily,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: FinzoColorsDark.textPrimary,

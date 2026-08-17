@@ -48,6 +48,7 @@ const createUser = async (userData) => {
     email: userData.email?.toLowerCase() || '',
     password: hashedPassword,
     profilePicture: userData.profilePicture || null,
+    upiId: userData.upiId?.trim() || '',
     monthlyBudget: userData.monthlyBudget || 0,
     savingsTarget: userData.savingsTarget || 0,
     emailVerified: userData.emailVerified || false,

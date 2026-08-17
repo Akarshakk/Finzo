@@ -2,6 +2,7 @@ class GroupMember {
   final String userId;
   final String name;
   final String email;
+  final String upiId; // Member's UPI ID for settlements (optional)
   final double amountOwed; // How much this user owes in total
   final double amountLent; // How much this user has lent
 
@@ -9,6 +10,7 @@ class GroupMember {
     required this.userId,
     required this.name,
     required this.email,
+    this.upiId = '',
     this.amountOwed = 0.0,
     this.amountLent = 0.0,
   });
@@ -18,6 +20,7 @@ class GroupMember {
       userId: json['userId'] ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
+      upiId: json['upiId'] ?? '',
       amountOwed: (json['amountOwed'] ?? 0).toDouble(),
       amountLent: (json['amountLent'] ?? 0).toDouble(),
     );
@@ -28,6 +31,7 @@ class GroupMember {
       'userId': userId,
       'name': name,
       'email': email,
+      'upiId': upiId,
       'amountOwed': amountOwed,
       'amountLent': amountLent,
     };

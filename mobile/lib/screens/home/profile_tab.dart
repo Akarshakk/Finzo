@@ -307,6 +307,17 @@ class _ProfileTabState extends State<ProfileTab> {
                       ),
                       Divider(height: 1, color: FinzoTheme.divider(context)),
                       _buildListTile(
+                        icon: Icons.account_balance_wallet_outlined,
+                        title: 'UPI ID',
+                        subtitle: (user?.upiId.isNotEmpty ?? false)
+                            ? user!.upiId
+                            : 'Add your UPI ID for group settlements',
+                        onTap: () => _showEditUpiDialog(context),
+                        textColor: FinzoTheme.textPrimary(context),
+                        subtitleColor: FinzoTheme.textSecondary(context),
+                      ),
+                      Divider(height: 1, color: FinzoTheme.divider(context)),
+                      _buildListTile(
                         icon: Icons.verified_user_outlined,
                         title: user?.kycStatus == 'VERIFIED'
                             ? 'KYC Verified'
@@ -639,6 +650,93 @@ class _ProfileTabState extends State<ProfileTab> {
                   ),
                 );
               }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: FinzoTheme.brandAccent(context),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditUpiDialog(BuildContext context) {
+    final controller = TextEditingController(
+      text: Provider.of<AuthProvider>(context, listen: false).user?.upiId ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: FinzoTheme.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(FinzoRadius.lg),
+        ),
+        title: Text('Your UPI ID', style: FinzoTypography.titleLarge()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Group members can pay you here when settling up.',
+              style: FinzoTypography.bodySmall().copyWith(
+                color: FinzoTheme.textSecondary(context),
+              ),
+            ),
+            const SizedBox(height: FinzoSpacing.md),
+            TextField(
+              controller: controller,
+              autocorrect: false,
+              keyboardType: TextInputType.emailAddress,
+              style: FinzoTypography.bodyMedium(),
+              decoration: InputDecoration(
+                labelText: 'UPI ID',
+                hintText: 'name@bank',
+                labelStyle: FinzoTypography.bodySmall().copyWith(
+                  color: FinzoTheme.textSecondary(context),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  borderSide: BorderSide(color: FinzoTheme.brandAccent(context), width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: FinzoTypography.labelMedium().copyWith(
+                color: FinzoTheme.textSecondary(context),
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final value = controller.text.trim();
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              final success = await authProvider.updateProfile(upiId: value);
+              navigator.pop();
+
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Text(success ? 'UPI ID saved!' : 'Failed to save UPI ID'),
+                  backgroundColor: success ? FinzoColors.success : FinzoColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(FinzoRadius.md),
+                  ),
+                ),
+              );
             },
             style: FilledButton.styleFrom(
               backgroundColor: FinzoTheme.brandAccent(context),
