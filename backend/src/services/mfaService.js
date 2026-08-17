@@ -18,6 +18,12 @@ const createTransporter = () => {
             host: process.env.SMTP_HOST || 'smtp.gmail.com',
             port: parseInt(process.env.SMTP_PORT) || 587,
             secure: false,
+            pool: true,
+            maxConnections: 2,
+            // Fail fast instead of hanging if the SMTP server is slow/unreachable.
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 20000,
             auth: {
                 user: process.env.SMTP_EMAIL,
                 pass: process.env.SMTP_PASSWORD,

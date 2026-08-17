@@ -22,9 +22,11 @@ exports.register = async (req, res) => {
 
     // Check if pending registration exists
     if (pendingRegistrations.has(email.toLowerCase())) {
-      // Resend OTP for existing pending registration
-      const pending = pendingRegistrations.get(email.toLowerCase());
-      await mfaService.sendOTP(email.toLowerCase(), email);
+      // Resend OTP for existing pending registration.
+      // Fire-and-forget: the OTP is stored synchronously inside sendOTP, so we
+      // don't block the HTTP response on the (slow) SMTP send.
+      mfaService.sendOTP(email.toLowerCase(), email)
+        .catch((e) => console.error('[Auth] OTP send failed:', e.message));
 
       return res.status(200).json({
         success: true,
@@ -47,8 +49,11 @@ exports.register = async (req, res) => {
       expiresAt: Date.now() + 30 * 60 * 1000 // 30 minutes
     });
 
-    // Send verification OTP
-    await mfaService.sendOTP(email.toLowerCase(), email);
+    // Send verification OTP in the background so the API responds instantly.
+    // The code is stored synchronously in sendOTP, so verification works even
+    // before the email finishes sending.
+    mfaService.sendOTP(email.toLowerCase(), email)
+      .catch((e) => console.error('[Auth] OTP send failed:', e.message));
 
     res.status(201).json({
       success: true,
@@ -181,9 +186,10 @@ exports.resendOtp = async (req, res) => {
         });
       }
 
-      // Extend expiry and send new OTP
+      // Extend expiry and send new OTP (non-blocking send)
       pending.expiresAt = Date.now() + 30 * 60 * 1000;
-      await mfaService.sendOTP(emailLower, email);
+      mfaService.sendOTP(emailLower, email)
+        .catch((e) => console.error('[Auth] OTP send failed:', e.message));
 
       return res.status(200).json({
         success: true,
@@ -194,7 +200,8 @@ exports.resendOtp = async (req, res) => {
     // Check if user exists but not verified (legacy case)
     const user = await User.findByEmail(email);
     if (user && !user.emailVerified) {
-      await mfaService.sendOTP(user.id, user.email);
+      mfaService.sendOTP(user.id, user.email)
+        .catch((e) => console.error('[Auth] OTP send failed:', e.message));
       return res.status(200).json({
         success: true,
         message: 'New OTP sent to your email'

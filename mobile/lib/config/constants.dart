@@ -28,11 +28,14 @@ class ApiConstants {
   static const String _serverIp = '192.168.1.246'; // Your computer's IP for physical device
   static const String _serverPort = '5001'; // Backend runs on port 5001 (from .env)
 
-  // Production override. Pass at build/run time, e.g.:
-  //   flutter build apk --release --dart-define=API_BASE_URL=https://your-app.onrender.com/api
-  // When set, this takes priority over the local dev logic below on all platforms.
-  static const String _prodBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  // Production backend URL (deployed on Render). This is used by default on all
+  // platforms so builds "just work" without extra flags. To temporarily point at
+  // a different backend (e.g. local dev), override at build time:
+  //   flutter run --dart-define=API_BASE_URL=http://192.168.1.246:5001/api
+  static const String _prodBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://finzo-a6k2.onrender.com/api',
+  );
 
   // Optional separate override for the Python RAG service (bill scan / chat context).
   static const String _prodRagBaseUrl =
@@ -46,7 +49,9 @@ class ApiConstants {
   }
 
   // Automatically detect platform and use correct URL
-  static String get baseUrl {
+  static String get baseUrl => _normalizeUrl(_resolveBaseUrl());
+
+  static String _resolveBaseUrl() {
     // Production build with an explicit backend URL wins everywhere.
     if (_prodBaseUrl.isNotEmpty) return _prodBaseUrl;
 
@@ -62,15 +67,25 @@ class ApiConstants {
     // 3. Android Emulator (needs 10.0.2.2)
     
     if (_serverIp == 'localhost' || _serverIp == '127.0.0.1') {
-      // We can't easily detect if we're on an emulator vs physical device here 
-      // without additional packages, but 10.0.2.2 is usually ONLY for emulator.
-      // For physical devices with adb reverse, 'localhost' is better.
-      // Since this is for debugging, we'll assume physical device if not on web/simulator.
       return 'http://localhost:$_serverPort/api';
     }
 
     // For real devices (physical Android/iOS) using computer's IP
     return 'http://$_serverIp:$_serverPort/api';
+  }
+
+  /// Collapses accidental double slashes (e.g. ".com//api") and strips any
+  /// trailing slash, while preserving the "https://" scheme. This keeps request
+  /// URLs valid even if the configured base URL has stray slashes.
+  static String _normalizeUrl(String url) {
+    final schemeIndex = url.indexOf('://');
+    if (schemeIndex == -1) {
+      return url.replaceAll(RegExp(r'/{2,}'), '/').replaceAll(RegExp(r'/+$'), '');
+    }
+    final scheme = url.substring(0, schemeIndex + 3);
+    var rest = url.substring(schemeIndex + 3).replaceAll(RegExp(r'/{2,}'), '/');
+    rest = rest.replaceAll(RegExp(r'/+$'), '');
+    return scheme + rest;
   }
 
   // Auth endpoints
