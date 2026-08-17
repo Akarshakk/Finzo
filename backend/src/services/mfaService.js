@@ -52,6 +52,52 @@ const buildOtpHtml = (otp) => `
     </div>
 `;
 
+const getSender = () => ({
+    email: process.env.EMAIL_FROM || process.env.SMTP_EMAIL || 'no-reply@finzo.app',
+    name: process.env.EMAIL_FROM_NAME || 'Finzo Security',
+});
+
+/**
+ * Sends the OTP email via the SendGrid HTTPS API (port 443, works on Render).
+ * Uses "Single Sender Verification" - no domain required.
+ * Returns true on success, false otherwise.
+ */
+const sendViaSendGrid = async (email, otp) => {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) return false;
+
+    const sender = getSender();
+
+    try {
+        const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                personalizations: [{ to: [{ email }] }],
+                from: { email: sender.email, name: sender.name },
+                subject: 'Your Verification Code - Finzo',
+                content: [{ type: 'text/html', value: buildOtpHtml(otp) }],
+            }),
+        });
+
+        // SendGrid returns 202 Accepted on success.
+        if (res.ok) {
+            console.log(`[MFA] ✓ OTP email sent via SendGrid to ${email}`);
+            return true;
+        }
+
+        const errText = await res.text();
+        console.error(`[MFA] SendGrid API error (${res.status}): ${errText}`);
+        return false;
+    } catch (error) {
+        console.error('[MFA] SendGrid request failed:', error.message);
+        return false;
+    }
+};
+
 /**
  * Sends the OTP email via the Brevo (Sendinblue) HTTPS API.
  * Uses port 443, so it works on hosts that block SMTP (e.g. Render free tier).
@@ -148,13 +194,13 @@ exports.sendOTP = async (userId, email) => {
     console.log(`[MFA] Expires in 10 minutes`);
     console.log('=============================================');
 
-    // Prefer the Brevo HTTPS API (works on Render); fall back to SMTP locally.
-    const sent = await sendViaBrevo(email, otp);
+    // Prefer an HTTPS email API (works on Render, which blocks SMTP).
+    // Try SendGrid, then Brevo, then fall back to SMTP (local dev only).
+    let sent = await sendViaSendGrid(email, otp);
+    if (!sent) sent = await sendViaBrevo(email, otp);
+    if (!sent) sent = await sendViaSmtp(email, otp);
     if (!sent) {
-        const smtpSent = await sendViaSmtp(email, otp);
-        if (!smtpSent) {
-            console.warn('[MFA] ⚠️ Email not sent (no working provider). Use the OTP from the log above.');
-        }
+        console.warn('[MFA] ⚠️ Email not sent (no working provider). Use the OTP from the log above.');
     }
 };
 
