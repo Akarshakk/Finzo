@@ -4,13 +4,13 @@ const otpGenerator = require('otp-generator');
 // In-memory store for OTPs (Use Redis in production)
 const otpStore = new Map();
 
-// Create transporter with better error handling
+// Optional SMTP transporter (used only as a fallback for local dev, since many
+// hosts like Render block outbound SMTP ports).
 let transporter = null;
 
 const createTransporter = () => {
     try {
         if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
-            console.warn('[MFA] SMTP credentials not configured. OTPs will only be logged to console.');
             return null;
         }
 
@@ -20,7 +20,6 @@ const createTransporter = () => {
             secure: false,
             pool: true,
             maxConnections: 2,
-            // Fail fast instead of hanging if the SMTP server is slow/unreachable.
             connectionTimeout: 10000,
             greetingTimeout: 10000,
             socketTimeout: 20000,
@@ -38,9 +37,93 @@ const createTransporter = () => {
     }
 };
 
+// Build the OTP email HTML
+const buildOtpHtml = (otp) => `
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Identity Verification</h2>
+        <p style="color: #666;">Your verification code is:</p>
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+            <h1 style="color: #4CAF50; letter-spacing: 8px; margin: 0; font-size: 36px;">${otp}</h1>
+        </div>
+        <p style="color: #666;">This code will expire in <strong>10 minutes</strong>.</p>
+        <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="color: #999; font-size: 11px;">Finzo - Your Finance Companion</p>
+    </div>
+`;
+
 /**
- * Generates and sends an OTP to the user's email
- * @param {string} userId - User ID
+ * Sends the OTP email via the Brevo (Sendinblue) HTTPS API.
+ * Uses port 443, so it works on hosts that block SMTP (e.g. Render free tier).
+ * Returns true on success, false otherwise.
+ */
+const sendViaBrevo = async (email, otp) => {
+    const apiKey = process.env.BREVO_API_KEY;
+    if (!apiKey) return false;
+
+    // Sender must be a verified sender in your Brevo account.
+    const senderEmail = process.env.EMAIL_FROM || process.env.SMTP_EMAIL || 'no-reply@finzo.app';
+    const senderName = process.env.EMAIL_FROM_NAME || 'Finzo Security';
+
+    try {
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'content-type': 'application/json',
+                'api-key': apiKey,
+            },
+            body: JSON.stringify({
+                sender: { name: senderName, email: senderEmail },
+                to: [{ email }],
+                subject: 'Your Verification Code - Finzo',
+                htmlContent: buildOtpHtml(otp),
+            }),
+        });
+
+        if (res.ok) {
+            console.log(`[MFA] ✓ OTP email sent via Brevo to ${email}`);
+            return true;
+        }
+
+        const errText = await res.text();
+        console.error(`[MFA] Brevo API error (${res.status}): ${errText}`);
+        return false;
+    } catch (error) {
+        console.error('[MFA] Brevo request failed:', error.message);
+        return false;
+    }
+};
+
+/**
+ * Fallback: send via SMTP (local dev only; blocked on many hosts).
+ */
+const sendViaSmtp = async (email, otp) => {
+    if (!transporter) {
+        transporter = createTransporter();
+    }
+    if (!transporter) return false;
+
+    try {
+        await transporter.sendMail({
+            from: `"Finzo Security" <${process.env.SMTP_EMAIL}>`,
+            to: email,
+            subject: 'Your Verification Code - Finzo',
+            html: buildOtpHtml(otp),
+        });
+        console.log(`[MFA] ✓ OTP email sent via SMTP to ${email}`);
+        return true;
+    } catch (error) {
+        console.error('[MFA] SMTP send failed:', error.message);
+        return false;
+    }
+};
+
+/**
+ * Generates and sends an OTP to the user's email.
+ * The code is stored synchronously before any network call, so verification
+ * works immediately even while the email is still being delivered.
+ * @param {string} userId - User ID (or email key)
  * @param {string} email - User Email
  * @returns {Promise<void>}
  */
@@ -52,54 +135,26 @@ exports.sendOTP = async (userId, email) => {
         digits: true
     });
 
-    // Store OTP with expiry (10 mins)
+    // Store OTP with expiry (10 mins) - synchronous, happens before network I/O
     otpStore.set(userId, {
         code: otp,
         expires: Date.now() + 10 * 60 * 1000
     });
 
-    // Always log OTP for development/testing
+    // Always log OTP for development/testing (visible in Render logs)
     console.log('=============================================');
     console.log(`[MFA] GENERATED OTP FOR ${email}: ${otp}`);
     console.log(`[MFA] User ID: ${userId}`);
     console.log(`[MFA] Expires in 10 minutes`);
     console.log('=============================================');
 
-    // Try to send email
-    if (!transporter) {
-        transporter = createTransporter();
-    }
-
-    if (transporter) {
-        const mailOptions = {
-            from: `"Finzo Security" <${process.env.SMTP_EMAIL}>`,
-            to: email,
-            subject: 'Your Verification Code - Finzo',
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #333;">Identity Verification</h2>
-                    <p style="color: #666;">Your verification code is:</p>
-                    <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                        <h1 style="color: #4CAF50; letter-spacing: 8px; margin: 0; font-size: 36px;">${otp}</h1>
-                    </div>
-                    <p style="color: #666;">This code will expire in <strong>10 minutes</strong>.</p>
-                    <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="color: #999; font-size: 11px;">Finzo - Your Finance Companion</p>
-                </div>
-            `
-        };
-
-        try {
-            await transporter.sendMail(mailOptions);
-            console.log(`[MFA] ✓ OTP email sent successfully to ${email}`);
-        } catch (error) {
-            console.warn('[MFA] ⚠️ Email failed to send. Using console OTP instead.');
-            console.error('[MFA] Email Error:', error.message);
-            // Don't throw - allow flow to continue with console OTP
+    // Prefer the Brevo HTTPS API (works on Render); fall back to SMTP locally.
+    const sent = await sendViaBrevo(email, otp);
+    if (!sent) {
+        const smtpSent = await sendViaSmtp(email, otp);
+        if (!smtpSent) {
+            console.warn('[MFA] ⚠️ Email not sent (no working provider). Use the OTP from the log above.');
         }
-    } else {
-        console.log('[MFA] Email not configured. Use the OTP from console above.');
     }
 };
 
