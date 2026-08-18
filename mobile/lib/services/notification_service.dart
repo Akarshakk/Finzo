@@ -143,6 +143,119 @@ class NotificationService {
     );
   }
 
+  /// Generic helper to show a finance notification (ensures init first).
+  Future<void> _showFinance({
+    required String channelId,
+    required String channelName,
+    required String title,
+    required String body,
+    Color color = const Color(0xFFD4A574),
+    String? payload,
+  }) async {
+    if (!_initialized) {
+      await initialize();
+    }
+
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelName,
+      channelDescription: 'Finzo $channelName',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      color: color,
+      enableVibration: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+    await _notifications.show(
+      DateTime.now().millisecondsSinceEpoch % 100000,
+      title,
+      body,
+      details,
+      payload: payload,
+    );
+    print('[Notifications] Shown: $title - $body');
+  }
+
+  /// Personal expense added.
+  Future<void> showExpenseAdded({required double amount, required String category}) async {
+    await _showFinance(
+      channelId: 'expenses',
+      channelName: 'Expenses',
+      title: 'Expense added',
+      body: 'Rs ${amount.toStringAsFixed(0)} added under $category.',
+      payload: 'expense',
+    );
+  }
+
+  /// Income added.
+  Future<void> showIncomeAdded({required double amount, required String source}) async {
+    await _showFinance(
+      channelId: 'income',
+      channelName: 'Income',
+      title: 'Income added',
+      body: 'Rs ${amount.toStringAsFixed(0)} added from $source.',
+      color: const Color(0xFF059669),
+      payload: 'income',
+    );
+  }
+
+  /// A group expense was added and the user owes a share.
+  Future<void> showGroupExpenseAdded({
+    required String groupName,
+    required String description,
+    required double yourShare,
+  }) async {
+    await _showFinance(
+      channelId: 'group_expenses',
+      channelName: 'Group Expenses',
+      title: 'New expense in $groupName',
+      body: yourShare > 0
+          ? '$description - your share is Rs ${yourShare.toStringAsFixed(0)}.'
+          : '$description was added.',
+      payload: 'group_expense',
+    );
+  }
+
+  /// Reminder that the user still owes money in a group.
+  Future<void> showSettleReminder({
+    required String groupName,
+    required double amount,
+    required String toName,
+  }) async {
+    await _showFinance(
+      channelId: 'settle_reminders',
+      channelName: 'Settle Reminders',
+      title: 'Time to settle up in $groupName',
+      body: 'You owe Rs ${amount.toStringAsFixed(0)} to $toName. Tap to settle.',
+      color: const Color(0xFFD97706),
+      payload: 'settle',
+    );
+  }
+
+  /// A settlement was completed.
+  Future<void> showSettlementDone({
+    required double amount,
+    required String toName,
+  }) async {
+    await _showFinance(
+      channelId: 'settlements',
+      channelName: 'Settlements',
+      title: 'Settled up',
+      body: 'You settled Rs ${amount.toStringAsFixed(0)} with $toName.',
+      color: const Color(0xFF059669),
+      payload: 'settlement_done',
+    );
+  }
+
   /// Request notification permissions (Android 13+)
   Future<bool> requestPermissions() async {
     final androidPlugin = _notifications.resolvePlatformSpecificImplementation<

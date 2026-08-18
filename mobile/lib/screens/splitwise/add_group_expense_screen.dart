@@ -4,6 +4,7 @@ import '../../config/app_theme.dart';
 import '../../models/group.dart' show GroupExpenseSplit;
 import '../../providers/splitwise_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/notification_service.dart';
 
 class AddGroupExpenseScreen extends StatefulWidget {
   final String groupId;
@@ -143,6 +144,17 @@ class _AddGroupExpenseScreenState extends State<AddGroupExpenseScreen> {
     // personal expense here anymore to avoid double counting.
 
     if (success && mounted) {
+      // Fire a local notification about the new group expense.
+      final authUserId = Provider.of<AuthProvider>(context, listen: false).user?.id;
+      final myShare = splits
+          .where((s) => s.memberId == authUserId)
+          .fold<double>(0, (sum, s) => sum + s.amount);
+      NotificationService().showGroupExpenseAdded(
+        groupName: group.name,
+        description: descriptionController.text.isEmpty ? 'Group Expense' : descriptionController.text,
+        yourShare: myShare,
+      );
+
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Expense added!')),

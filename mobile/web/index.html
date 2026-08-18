@@ -18,13 +18,30 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Finzo - Personal Finance Management App">
+
+  <!-- Viewport with viewport-fit=cover so iOS exposes safe-area insets to
+       Flutter (fixes content being cut under the notch/status bar in PWA). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Finzo">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <style>
+    /* Fill the safe-area (notch) region with the app's dark brand color so the
+       status bar area doesn't flash white before Flutter paints. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #1A1A2E;
+      height: 100%;
+      overflow: hidden;
+    }
+  </style>
 
   <!-- Material Icons -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -36,7 +53,6 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

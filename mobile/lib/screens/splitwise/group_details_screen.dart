@@ -9,6 +9,7 @@ import 'add_group_expense_screen.dart';
 import 'group_chat_screen.dart';
 import '../../services/api_service.dart';
 import '../../services/upi_service.dart';
+import '../../services/notification_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -1065,6 +1066,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
     );
     if (!mounted) return;
     if (success) {
+      NotificationService().showSettlementDone(
+        amount: (settlement['amount'] as num).toDouble(),
+        toName: settlement['to']?.toString() ?? 'member',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Settled!'), backgroundColor: Colors.green),
       );
@@ -1088,7 +1093,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
       payeeUpiId: upiId,
       payeeName: payeeName,
       amount: amount,
-      note: 'Finzo · ${group.name}',
+      note: 'Finzo settlement ${group.name}',
     );
 
     if (!mounted) return;

@@ -9,6 +9,8 @@ import '../../providers/analytics_provider.dart';
 import '../../providers/debt_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/debt_reminder_service.dart';
+import '../../services/notification_service.dart';
+import '../../widgets/glass_container.dart';
 import '../../l10n/app_localizations.dart';
 import 'dashboard_tab.dart';
 import 'expenses_tab.dart';
@@ -65,6 +67,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      // Ensure notifications are ready (works even if SMS tracking is off).
+      final notifications = NotificationService();
+      notifications.initialize().then((_) => notifications.requestPermissions());
     });
   }
 
@@ -343,18 +348,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         
         return Transform.translate(
           offset: Offset(0, _navSlide.value),
-          child: Container(
-            decoration: BoxDecoration(
-              color: FinzoTheme.surface(context),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
+          child: GlassContainer(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            opacity: FinzoTheme.isDark(context) ? 0.55 : 0.72,
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(

@@ -218,6 +218,11 @@ class FinzoTypography {
   // Use system font for best cross-platform rendering
   static String get fontFamily => GoogleFonts.inter().fontFamily ?? 'Inter';
 
+  // NOTE: When no explicit `color` is passed, these styles leave color null so
+  // the Text widget inherits the theme's color (dark text in light mode, light
+  // text in dark mode). Previously they forced the light theme's dark color,
+  // which made text invisible on dark backgrounds.
+
   // Display - Large headlines
   static TextStyle displayLarge({Color? color}) => TextStyle(
     fontFamily: fontFamily,
@@ -225,7 +230,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w700,
     letterSpacing: -0.5,
     height: 1.2,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle displayMedium({Color? color}) => TextStyle(
@@ -234,7 +239,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w700,
     letterSpacing: -0.3,
     height: 1.25,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle displaySmall({Color? color}) => TextStyle(
@@ -243,7 +248,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w600,
     letterSpacing: -0.2,
     height: 1.3,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   // Headline
@@ -253,7 +258,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w600,
     letterSpacing: -0.2,
     height: 1.35,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle headlineMedium({Color? color}) => TextStyle(
@@ -262,7 +267,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w600,
     letterSpacing: -0.1,
     height: 1.4,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle headlineSmall({Color? color}) => TextStyle(
@@ -270,7 +275,7 @@ class FinzoTypography {
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.4,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   // Title
@@ -279,7 +284,7 @@ class FinzoTypography {
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.5,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle titleMedium({Color? color}) => TextStyle(
@@ -287,7 +292,7 @@ class FinzoTypography {
     fontSize: 15,
     fontWeight: FontWeight.w500,
     height: 1.5,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle titleSmall({Color? color}) => TextStyle(
@@ -295,7 +300,7 @@ class FinzoTypography {
     fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.5,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   // Body
@@ -304,7 +309,7 @@ class FinzoTypography {
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.5,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle bodyMedium({Color? color}) => TextStyle(
@@ -312,7 +317,7 @@ class FinzoTypography {
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.5,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle bodySmall({Color? color}) => TextStyle(
@@ -320,7 +325,7 @@ class FinzoTypography {
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.5,
-    color: color ?? FinzoColors.textSecondary,
+    color: color,
   );
 
   // Label
@@ -329,7 +334,7 @@ class FinzoTypography {
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.4,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle labelMedium({Color? color}) => TextStyle(
@@ -337,7 +342,7 @@ class FinzoTypography {
     fontSize: 12,
     fontWeight: FontWeight.w500,
     height: 1.4,
-    color: color ?? FinzoColors.textSecondary,
+    color: color,
   );
 
   static TextStyle labelSmall({Color? color}) => TextStyle(
@@ -345,7 +350,7 @@ class FinzoTypography {
     fontSize: 11,
     fontWeight: FontWeight.w500,
     height: 1.4,
-    color: color ?? FinzoColors.textSecondary,
+    color: color,
   );
 
   // Amount/Money display
@@ -355,7 +360,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w700,
     letterSpacing: -0.5,
     height: 1.2,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle amountMedium({Color? color}) => TextStyle(
@@ -364,7 +369,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w600,
     letterSpacing: -0.3,
     height: 1.3,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   static TextStyle amountSmall({Color? color}) => TextStyle(
@@ -373,7 +378,7 @@ class FinzoTypography {
     fontWeight: FontWeight.w600,
     letterSpacing: -0.2,
     height: 1.4,
-    color: color ?? FinzoColors.textPrimary,
+    color: color,
   );
 
   // Button text

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/constants.dart';
 import '../models/expense.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class ExpenseProvider extends ChangeNotifier {
   List<Expense> _expenses = [];
@@ -121,6 +122,11 @@ class ExpenseProvider extends ChangeNotifier {
         _totalCount++;
         _isLoading = false;
         notifyListeners();
+        // Notify only for direct personal expenses (group expenses are created
+        // on the backend and would otherwise double-notify).
+        if (groupId == null) {
+          NotificationService().showExpenseAdded(amount: amount, category: category);
+        }
         return true;
       } else {
         _errorMessage = response['message'] ?? 'Failed to add expense';

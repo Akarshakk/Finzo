@@ -10,6 +10,7 @@ import 'splitwise_groups_tab.dart';
 import 'splitwise_friends_tab.dart';
 import 'splitwise_activity_tab.dart';
 import 'splitwise_settings_tab.dart';
+import '../../widgets/glass_container.dart';
 
 class SplitwiseHomeScreen extends StatefulWidget {
   const SplitwiseHomeScreen({super.key});
@@ -218,18 +219,9 @@ class _SplitwiseHomeScreenState extends State<SplitwiseHomeScreen> with TickerPr
         builder: (context, child) {
           return Transform.translate(
             offset: Offset(0, _navSlide.value),
-            child: Container(
-              decoration: BoxDecoration(
-                color: FinzoTheme.surface(context),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
+            child: GlassContainer(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              opacity: FinzoTheme.isDark(context) ? 0.55 : 0.72,
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
