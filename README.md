@@ -8,6 +8,8 @@
 
 ---
 
+https://finzo-gamma.vercel.app/
+
 ## 🎯 Overview
 
 Finzo is a full-stack mobile and web application that helps:
